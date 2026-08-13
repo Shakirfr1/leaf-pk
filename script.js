@@ -119,3 +119,60 @@ function clearNavAtHero(){
 window.addEventListener('scroll', clearNavAtHero, {passive:true});
 window.addEventListener('load', clearNavAtHero);
 clearNavAtHero();
+
+
+// V8 homepage moving banner
+(() => {
+  const slider = document.querySelector('.hero-slider');
+  if (!slider) return;
+  const slides = [...slider.querySelectorAll('.hero-slide')];
+  const dots = [...slider.querySelectorAll('.hero-slider-dots button')];
+  const prev = slider.querySelector('.hero-slider-arrow--prev');
+  const next = slider.querySelector('.hero-slider-arrow--next');
+  if (slides.length < 2) return;
+  let current = 0;
+  let timer = null;
+  const delay = 5500;
+
+  function show(index, userInitiated = false) {
+    current = (index + slides.length) % slides.length;
+    slides.forEach((slide, i) => {
+      const active = i === current;
+      slide.classList.toggle('is-active', active);
+      slide.setAttribute('aria-hidden', String(!active));
+    });
+    dots.forEach((dot, i) => {
+      const active = i === current;
+      dot.classList.toggle('is-active', active);
+      dot.setAttribute('aria-selected', String(active));
+    });
+    if (userInitiated) restart();
+  }
+
+  function start() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    stop();
+    timer = window.setInterval(() => show(current + 1), delay);
+  }
+  function stop() { if (timer) window.clearInterval(timer); timer = null; }
+  function restart() { stop(); start(); }
+
+  prev?.addEventListener('click', () => show(current - 1, true));
+  next?.addEventListener('click', () => show(current + 1, true));
+  dots.forEach(dot => dot.addEventListener('click', () => show(Number(dot.dataset.slideTo), true)));
+  slider.addEventListener('mouseenter', stop);
+  slider.addEventListener('mouseleave', start);
+  slider.addEventListener('focusin', stop);
+  slider.addEventListener('focusout', start);
+  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+  let touchX = 0;
+  slider.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, {passive:true});
+  slider.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 45) show(current + (dx < 0 ? 1 : -1), true);
+  }, {passive:true});
+
+  show(0);
+  start();
+})();
